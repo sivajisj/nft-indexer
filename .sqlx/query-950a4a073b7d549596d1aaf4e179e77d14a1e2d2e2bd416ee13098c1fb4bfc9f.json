@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT DISTINCT ON (token_id)\n            token_id as \"token_id!\"\n        FROM events\n        WHERE event_type = 'Transfer' AND confirmed = true AND LOWER(to_address) = $1\n        ORDER BY token_id, block_number DESC, log_index DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "950a4a073b7d549596d1aaf4e179e77d14a1e2d2e2bd416ee13098c1fb4bfc9f"
+}
