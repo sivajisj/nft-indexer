@@ -19,10 +19,8 @@ pub struct EventRecord {
     pub log_index: i32,
 }
 
-
-pub struct OwnedToken{
+pub struct OwnedToken {
     pub token_id: BigDecimal,
-    pub block_number: i64
 }
 pub async fn insert_transfer_event(pool: &PgPool, record: EventRecord) -> Result<(), sqlx::Error> {
     sqlx::query(
@@ -48,7 +46,7 @@ pub async fn insert_transfer_event(pool: &PgPool, record: EventRecord) -> Result
 
 pub async fn promote_confirmed_events(pool: &PgPool, safe_block: i64) -> Result<u64, sqlx::Error> {
     let result = sqlx::query(
-        "UPDATE events SET confirmed = true WHERE confirmed = false AND block_number <= $1"
+        "UPDATE events SET confirmed = true WHERE confirmed = false AND block_number <= $1",
     )
     .bind(safe_block)
     .execute(pool)
@@ -57,13 +55,15 @@ pub async fn promote_confirmed_events(pool: &PgPool, safe_block: i64) -> Result<
     Ok(result.rows_affected())
 }
 
-pub async fn get_owned_tokens(pool: &PgPool, owner_address: &str) -> Result<Vec<OwnedToken>, sqlx::Error> {
+pub async fn get_owned_tokens(
+    pool: &PgPool,
+    owner_address: &str,
+) -> Result<Vec<OwnedToken>, sqlx::Error> {
     let rows = sqlx::query_as!(
         OwnedToken,
         r#"
         SELECT DISTINCT ON (token_id)
-            token_id as "token_id!",
-            block_number as "block_number!"
+            token_id as "token_id!"
         FROM events
         WHERE event_type = 'Transfer' AND confirmed = true AND LOWER(to_address) = $1
         ORDER BY token_id, block_number DESC, log_index DESC

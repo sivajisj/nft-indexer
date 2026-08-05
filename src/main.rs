@@ -1,13 +1,16 @@
+mod api;
 mod auth;
 mod chain;
 mod config;
 mod db;
-mod events;
 mod errors;
-mod api;
+mod events;
 use alloy::primitives::address;
-use axum::{Router, routing::{post, get}};
-use tower_http::cors::{CorsLayer, Any};
+use axum::{
+    Router,
+    routing::{get, post},
+};
+use tower_http::cors::{Any, CorsLayer};
 
 use config::Config;
 
@@ -17,13 +20,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let pool = db::connect(&cfg.database_url).await?;
 
-
-let app = Router::new()
-    .route("/auth/nonce", post(auth::get_nonce))
-    .route("/auth/verify", post(auth::verify_signature))
-.route("/tokens/owned/:address", get(api::owned_tokens))
-    .layer(CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any))
-    .with_state(pool.clone());
+    let app = Router::new()
+        .route("/auth/nonce", post(auth::get_nonce))
+        .route("/auth/verify", post(auth::verify_signature))
+        .route("/tokens/owned/:address", get(api::owned_tokens))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
+        .with_state(pool.clone());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await?;
     println!("API server running on http://localhost:4000");
@@ -35,7 +42,7 @@ let app = Router::new()
             .await
             .unwrap();
     });
-
+    // Start the Axum server
     axum::serve(listener, app).await?;
 
     Ok(())

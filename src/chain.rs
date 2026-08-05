@@ -1,14 +1,14 @@
+use alloy::primitives::Address;
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::rpc::types::Filter;
-use alloy::primitives::Address;
 use alloy::sol_types::SolEvent;
-use tokio::time::{sleep, Duration};
-use std::str::FromStr;
-use sqlx::types::BigDecimal;
 use sqlx::PgPool;
+use sqlx::types::BigDecimal;
+use std::str::FromStr;
+use tokio::time::{Duration, sleep};
 
+use crate::db::{EventRecord, insert_transfer_event, promote_confirmed_events};
 use crate::events::Transfer;
-use crate::db::{insert_transfer_event, promote_confirmed_events, EventRecord};
 
 pub async fn build_provider(rpc_url: &str) -> Result<impl Provider, Box<dyn std::error::Error>> {
     Ok(ProviderBuilder::new().connect_http(rpc_url.parse()?))
@@ -28,7 +28,10 @@ async fn get_logs_with_retry(
                     return Err(Box::new(e));
                 }
                 let backoff_ms = 500 * attempts;
-                eprintln!("Rate limited or error, retrying in {}ms (attempt {})", backoff_ms, attempts);
+                eprintln!(
+                    "Rate limited or error, retrying in {}ms (attempt {})",
+                    backoff_ms, attempts
+                );
                 sleep(Duration::from_millis(backoff_ms)).await;
             }
         }
@@ -44,7 +47,6 @@ pub async fn run_indexer(
     let starting_block = provider.get_block_number().await?;
     let mut last_scanned_block = starting_block;
     let chunk_size = 10u64;
-    
 
     println!("Indexer starting, watching from block {}", starting_block);
 
@@ -82,7 +84,10 @@ pub async fn run_indexer(
 
                 insert_transfer_event(&pool, record).await?;
 
-                println!("New event: tokenId={} tx={} log_index={}", token_id, tx_hash, log_index);
+                println!(
+                    "New event: tokenId={} tx={} log_index={}",
+                    token_id, tx_hash, log_index
+                );
             }
 
             last_scanned_block = end_block + 1;
@@ -93,7 +98,10 @@ pub async fn run_indexer(
         let confirmed_count = promote_confirmed_events(&pool, safe_block as i64).await?;
 
         if confirmed_count > 0 {
-            println!("Confirmed {} events (blocks up to {})", confirmed_count, safe_block);
+            println!(
+                "Confirmed {} events (blocks up to {})",
+                confirmed_count, safe_block
+            );
         }
 
         sleep(Duration::from_secs(15)).await;
